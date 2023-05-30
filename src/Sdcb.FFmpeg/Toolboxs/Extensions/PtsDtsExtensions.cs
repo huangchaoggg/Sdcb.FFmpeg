@@ -31,8 +31,8 @@ namespace Sdcb.FFmpeg.Toolboxs.Extensions
             {
                 if (frame.Width > 0)
                 {
-                    var Framerate = videoCodec.Framerate.Num==0|| videoCodec.Framerate.Den==0? videoCodec.TimeBase:videoCodec.Framerate;
-                    var dura= (1 / av_q2d(videoCodec.TimeBase) / av_q2d(Framerate));
+                    //var Framerate = videoCodec.Framerate.Num==0|| videoCodec.Framerate.Den==0? videoCodec.TimeBase:videoCodec.Framerate;
+                    var dura= (1 / av_q2d(videoCodec.TimeBase) / av_q2d(videoCodec.TimeBase));
                     var pts = frame_index++ * dura;
                     frame.PktDuration = (long)dura;
                     frame.Pts = (long) pts;
@@ -43,7 +43,7 @@ namespace Sdcb.FFmpeg.Toolboxs.Extensions
                 {
                     frame.Pts = audioFrame_Pts;
                     frame.PktDts= audioFrame_Pts;
-                    audioFrame_Pts += videoCodec.FrameSize;
+                    audioFrame_Pts += frame.NbSamples;
                     yield return frame;
                 }
             }

@@ -72,7 +72,8 @@ namespace Sdcb.FFmpeg.Toolboxs.FilterTools
         {
             foreach(var inframe in frames)
             {
-                yield return inframe.Frame!;
+                if(inframe.Frame!=null)
+                    yield return inframe.Frame!;
             }
         }
         public static IEnumerable<FrameContext> ApplyMultipleToOneFilter(this IEnumerable<FrameContext> frames, MultipleToOneFilter filter)

@@ -308,7 +308,11 @@ public class Examples : IDisposable
         // begin write
         IOContext io = IOContext.OpenWrite(destFile);
         outFc.Pb = io;
-        outFc.WriteHeader();
+        MediaDictionary pairs = new MediaDictionary()
+        {
+            ["movflags"] = "rtphint+faststart"
+        };//流化
+        outFc.WriteHeader(pairs);
         Task t = Task.Run(() =>
         {
             appositionFilter.WriteFrame(context.queue, context1.queue, context2.queue)
@@ -327,7 +331,7 @@ public class Examples : IDisposable
         outFc.Flush();
         //outFc.Dispose();
     }
-    private (MediaThreadQueue<Frame> queue,FormatContext inFc, CodecContext audioDecoder, CodecContext videoDecoder) CreateDecoderFrameQueue(string mp4Path)
+    private (MediaThreadQueue<Frame> queue,FormatContext inFc) CreateDecoderFrameQueue(string mp4Path)
     {
         FormatContext inFc = FormatContext.OpenInputUrl(mp4Path);
         inFc.LoadStreamInfo();
@@ -349,7 +353,7 @@ public class Examples : IDisposable
         .ReadPackets(inVideoStream.Index, inAudioStream.Index)
         .DecodeAllPackets(inFc,audioDecoder,videoDecoder)
         .ToThreadQueue();
-        return (mediaThreadQueue,inFc, audioDecoder, videoDecoder);
+        return (mediaThreadQueue,inFc);
     }
     private unsafe AVChannelLayout GetChannelLayout(int nb_channels)
     {
