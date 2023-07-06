@@ -18,6 +18,8 @@ namespace Sdcb.FFmpeg.Toolboxs.Extensions
 
         public int Count => _queue.Count;
 
+        public bool IsCompleted { get => _queue.IsCompleted; }
+
         internal MediaThreadQueue(BlockingCollection<T> queue, Task task, string name)
         {
             _queue = queue;
@@ -52,6 +54,11 @@ namespace Sdcb.FFmpeg.Toolboxs.Extensions
                 }
                 GC.KeepAlive(_task);
             }
+        }
+
+        public T Take()
+        {
+           return  _queue.Take();
         }
     }
 
