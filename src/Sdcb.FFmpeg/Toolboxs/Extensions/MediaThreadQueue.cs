@@ -53,11 +53,6 @@ namespace Sdcb.FFmpeg.Toolboxs.Extensions
                 GC.KeepAlive(_task);
             }
         }
-        public bool IsCompleted => _queue.IsCompleted;
-        public T Take()
-        {
-            return _queue.Take();
-        }
     }
 
     public static class MediaQueueExtensions

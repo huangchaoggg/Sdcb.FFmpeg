@@ -1,7 +1,6 @@
 using Sdcb.FFmpeg.Codecs;
 using Sdcb.FFmpeg.Common;
 using Sdcb.FFmpeg.Raw;
-using Sdcb.FFmpeg.Toolboxs.Extensions;
 using Sdcb.FFmpeg.Utils;
 using System;
 using System.Collections.Generic;
@@ -171,6 +170,7 @@ public unsafe partial class FormatContext : SafeHandle
             }
         }
     }
+
     /// <summary>
     /// <see cref="av_seek_frame(AVFormatContext*, int, long, int)"/>
     /// </summary>

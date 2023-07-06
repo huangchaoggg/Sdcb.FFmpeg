@@ -12,14 +12,14 @@ namespace Sdcb.FFmpeg.Raw
     {
         public static Dictionary<string, int> LibraryVersionMap =  new ()
         {
-            ["avcodec"] = 60,
-            ["avdevice"] = 60,
-            ["avfilter"] = 9,
-            ["avformat"] = 60,
-            ["avutil"] = 58,
-            ["postproc"] = 57,
+            ["avcodec"] = 59,
+            ["avdevice"] = 59,
+            ["avfilter"] = 8,
+            ["avformat"] = 59,
+            ["avutil"] = 57,
+            ["postproc"] = 56,
             ["swresample"] = 4,
-            ["swscale"] = 7,
+            ["swscale"] = 6,
         };
     }
 }

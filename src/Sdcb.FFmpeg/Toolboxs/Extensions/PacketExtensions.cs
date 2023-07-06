@@ -5,8 +5,6 @@ using Sdcb.FFmpeg.Raw;
 using Sdcb.FFmpeg.Utils;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-
 using static Sdcb.FFmpeg.Raw.ffmpeg;
 
 namespace Sdcb.FFmpeg.Toolboxs.Extensions;
@@ -117,20 +115,5 @@ public static class PacketsExtensions
         AVPacket* ptr = (AVPacket*)packet;
         ptr->data = (byte*)data;
         ptr->size = size;
-    }
-    public static IEnumerable<Packet> RescaleTimestamp(this IEnumerable<Packet> packets, FormatContext source, FormatContext dest)
-    {
-        foreach (var packet in packets)
-        {
-            yield return packet.RescaleTimestamp(source, dest);
-        }
-    }
-    public static Packet RescaleTimestamp(this Packet packet, FormatContext source, FormatContext dest)
-    {
-        var sourceStream = source.Streams[packet.StreamIndex];
-        MediaStream destStream = dest.FindBestStream(sourceStream.Codecpar!.CodecType);
-        packet.StreamIndex = destStream.Index;
-        packet.RescaleTimestamp(sourceStream.TimeBase, destStream.TimeBase);
-        return packet;
     }
 }
