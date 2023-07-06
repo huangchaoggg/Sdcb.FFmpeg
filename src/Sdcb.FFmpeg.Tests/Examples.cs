@@ -245,12 +245,18 @@ public class Examples : IDisposable
         @"D:\\项目\\GitHubSource\\CG.Fmcode\\MultiUnitTest\\Source\输出.mp4")]
     public async void AppositionMp4WithFilter(string mp4Path, string mp4Path2, string mp4Path3, string destFile)
     {
+        string audioPath1 = "D:\\华智信\\项目\\039\\测试音视频\\ff-16b-2c-44100hz1.wav";
+        string audioPath2 = "D:\\华智信\\项目\\039\\测试音视频\\ff-16b-2c-44100hz2.wav";
+        string audioPath3 = "D:\\华智信\\项目\\039\\测试音视频\\ff-16b-2c-44100hz3.wav";
         FFmpegLogger.LogWriter = (a, b) =>
         _console.WriteLine(b);
         var context = CreateDecoderFrameQueue(mp4Path);
         var context1 = CreateDecoderFrameQueue(mp4Path2);
         var context2 = CreateDecoderFrameQueue(mp4Path3);
 
+        var aContext1 = CreateDecoderFrameQueue(audioPath1);
+        var aContext2 = CreateDecoderFrameQueue(audioPath2);
+        var aContext3 = CreateDecoderFrameQueue(audioPath3);
         AppositionFilter appositionFilter= AppositionFilter.AllocFilter(new System.Drawing.Size() { Width = 1920, Height = 1080 }, new[]
         {
             new AppositionParams(context.inFc.GetVideoStream(),new System.Drawing.Rectangle(0, 0, 960, 540)),
