@@ -251,7 +251,6 @@ public class Examples : IDisposable
         var context1 = CreateDecoderFrameQueue(mp4Path2);
         var context2 = CreateDecoderFrameQueue(mp4Path3);
 
-
         AppositionFilter appositionFilter= AppositionFilter.AllocFilter(new System.Drawing.Size() { Width = 1920, Height = 1080 }, new[]
         {
             new AppositionParams(context.inFc.GetVideoStream(),new System.Drawing.Rectangle(0, 0, 960, 540)),
