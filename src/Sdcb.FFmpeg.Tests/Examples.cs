@@ -235,14 +235,14 @@ public class Examples : IDisposable
     }
 
     [Theory]
-    //[InlineData(@"D:\华智信\项目\039\测试音视频\港片MV0.H264",
-    //    @"D:\华智信\项目\039\测试音视频\港片MV0.H264",
-    //    @"D:\华智信\项目\039\测试音视频\港片MV0.H264",
-    //    @"D:\\项目\\GitHubSource\\CG.Fmcode\\MultiUnitTest\\Source\输出.mp4")]
-    [InlineData(@"D:\华智信\项目\039\HZXDATA.Client\HZXDATA.Client\Sources\彩虹的微笑.mp4",
-        @"D:\华智信\项目\039\HZXDATA.Client\HZXDATA.Client\Sources\彩虹的微笑.mp4",
-        @"D:\华智信\项目\039\HZXDATA.Client\HZXDATA.Client\Sources\彩虹的微笑.mp4",
+    [InlineData(@"D:\华智信\项目\039\测试音视频\港片MV0.264",
+        @"D:\华智信\项目\039\测试音视频\港片MV0.264",
+        @"D:\华智信\项目\039\测试音视频\港片MV0.264",
         @"D:\\项目\\GitHubSource\\CG.Fmcode\\MultiUnitTest\\Source\输出.mp4")]
+    //[InlineData(@"D:\华智信\项目\039\HZXDATA.Client\HZXDATA.Client\Sources\彩虹的微笑.mp4",
+    //    @"D:\华智信\项目\039\HZXDATA.Client\HZXDATA.Client\Sources\彩虹的微笑.mp4",
+    //    @"D:\华智信\项目\039\HZXDATA.Client\HZXDATA.Client\Sources\彩虹的微笑.mp4",
+    //    @"D:\\项目\\GitHubSource\\CG.Fmcode\\MultiUnitTest\\Source\输出.mp4")]
     public async void AppositionMp4WithFilter(string mp4Path, string mp4Path2, string mp4Path3, string destFile)
     {
         string audioPath1 = "D:\\华智信\\项目\\039\\测试音视频\\ff-16b-2c-44100hz1.wav";
@@ -353,7 +353,6 @@ public class Examples : IDisposable
         CodecContext videoDecoder = new(Codec.FindDecoderById(inVideoStream.Codecpar!.CodecId));
         videoDecoder.FillParameters(inVideoStream.Codecpar!);
         videoDecoder.Open();
-
         MediaThreadQueue<Frame> mediaThreadQueue = inFc
         .ReadPackets(inVideoStream.Index, inAudioStream.Index)
         .DecodeAllPackets(inFc,audioDecoder,videoDecoder)

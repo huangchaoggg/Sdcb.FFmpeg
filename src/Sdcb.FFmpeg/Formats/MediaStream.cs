@@ -1,6 +1,8 @@
 ﻿using Sdcb.FFmpeg.Codecs;
 using Sdcb.FFmpeg.Common;
 using Sdcb.FFmpeg.Raw;
+using Sdcb.FFmpeg.Utils;
+
 using System;
 using static Sdcb.FFmpeg.Raw.ffmpeg;
 
@@ -42,5 +44,9 @@ namespace Sdcb.FFmpeg.Formats
         /// </summary>
         public int SearchTimestamp(long timestamp, AVSEEK_FLAG flags = AVSEEK_FLAG.Backward)
             => av_index_search_timestamp(this, timestamp, (int)flags);
+        /// <summary>
+        /// <see cref="avformat_index_get_entry(AVStream*, int)"/>
+        /// </summary>
+        public IndexEntity SerchIndex(int index) => IndexEntity.FromNative(avformat_index_get_entry(this, index));
     }
 }
