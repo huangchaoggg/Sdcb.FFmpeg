@@ -18,7 +18,7 @@ namespace MediaPlayer.MediaFramework
 {
     public class VideoDecoder: Decoder
     {
-        private VideoDecoder(MediaStream inStream, StateMachine stateMachine) : base(inStream,stateMachine)
+        private VideoDecoder(MediaStream inStream,StateMachine stateMachine) : base(inStream,stateMachine)
         {
             RefreshFPS(inStream);
         }

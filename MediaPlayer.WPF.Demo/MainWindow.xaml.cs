@@ -42,7 +42,7 @@ namespace MediaPlayer.WPF.Demo
 
         private void Button_Click_1(object sender, RoutedEventArgs e)
         {
-            if(Player.Statu==MediaStatus.Playing)
+            if(Player.Statu== MediaStatus.Playing)
             {
                 Player.Pause();
             }else if (Player.Statu == MediaStatus.Pause)
@@ -53,7 +53,7 @@ namespace MediaPlayer.WPF.Demo
 
         private void Button_Click_2(object sender, RoutedEventArgs e)
         {
-
+            Player.Stop();
         }
     }
 }

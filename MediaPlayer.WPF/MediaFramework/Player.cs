@@ -1,12 +1,15 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
 
 using Sdcb.FFmpeg.Utils;
 
 namespace MediaPlayer.MediaFramework
 {
-    public class Player:INotifyPropertyChanged,IDisposable
+    public class Player:INotifyPropertyChanged,IAsyncDisposable
     {
         private string? uri;
         
@@ -15,10 +18,14 @@ namespace MediaPlayer.MediaFramework
 
         public event EventHandler<Frame>? ReadFrameEvent;
         public event EventHandler? OpenEvent;
+
+        private Timer timer;
         public Player()
         {
             mediaContainer = new MediaContainer();
             mediaContainer.ReadFrameEvent += MediaContainer_ReadFrameEvent;
+            timer = new Timer(UpdatePosition);
+            timer.Change(0, 10);
         }
 
         private void MediaContainer_ReadFrameEvent(object? sender, Frame? e)
@@ -48,12 +55,14 @@ namespace MediaPlayer.MediaFramework
         public bool HasAudio { get => mediaContainer.HasAudio; }
         public MediaStatus Statu { get => mediaContainer.Statu; }
 
-        private long postion=0;
-        public long Postion { 
-            get => mediaContainer.CurTime; 
+        private long position=0;
+        public long Position { 
+            get => position; 
             set
             {
-                Set(ref postion, value);
+                if (value < 0) return;
+                Set(ref position, value);
+                mediaContainer.CurTime = value;
             }
         }
         private long duration = 0;
@@ -61,11 +70,12 @@ namespace MediaPlayer.MediaFramework
         public double Height { get => mediaContainer.VideoDecoder?.Height??0; }
         public double Width { get=> mediaContainer?.VideoDecoder?.Width ?? 0; }
 
-        public void Open(string uri)
+        public async void Open(string uri)
         {
             Uri = uri;
-            Stop();
+            await Stop();
             mediaContainer.OpenDecode(uri);
+            Duration = mediaContainer.Duration;
             OpenEvent?.Invoke(this,EventArgs.Empty);
         }
         
@@ -75,11 +85,11 @@ namespace MediaPlayer.MediaFramework
         }       
         
         
-        public void Stop()
+        public async ValueTask Stop()
         {
-            mediaContainer.Stop();
-            Set(ref postion,0,nameof(Postion));
-            Dispose();
+            await mediaContainer.Stop();
+            Set(ref position,0,nameof(Position));
+            await DisposeAsync();
 
         }
         public void Pause()
@@ -97,10 +107,15 @@ namespace MediaPlayer.MediaFramework
 
         }
         
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            mediaContainer.Dispose();
+            await mediaContainer.DisposeAsync();
             
+        }
+
+        private void UpdatePosition(object? state)
+        {
+            Set(ref position, mediaContainer.CurTime,nameof(Position));
         }
     }
 }

@@ -15,7 +15,7 @@ using Sdcb.FFmpeg.Utils;
 
 namespace MediaPlayer.MediaFramework
 {
-    public class MediaContainer:IDisposable
+    public class MediaContainer:IAsyncDisposable
     {
         private FormatContext? formatContext = null;
         private AudioStream? AudioStream;
@@ -30,12 +30,13 @@ namespace MediaPlayer.MediaFramework
         private WaveOut waveOut = new WaveOut();
         private VolumeSampleProvider? volumeSampleProvider;
         private Thread? playerThread;//播放器解码线程
+        private CancellationTokenSource? playToken;
         public string? Uri { get; set; }
         public AudioDecoder? AudioDecoder { get; private set; }
         public VideoDecoder? VideoDecoder { get; private set; }
         public bool HasVideo { get => VideoDecoder != null; }
         public bool HasAudio { get => AudioDecoder != null; }
-        public long Duration { get => formatContext!=null?formatContext.Duration:0; }
+        public long Duration { get => (formatContext!=null&& formatContext.Duration >0) ? formatContext.Duration/1000:0; }
         public long CurTime
         {
             get => stateMachine.CurTime;
@@ -45,7 +46,6 @@ namespace MediaPlayer.MediaFramework
                 //这里设置位置信息
             }
         }
-
         public MediaStatus Statu { get => stateMachine.MediaStatus; }
 
         /// <summary>
@@ -55,24 +55,32 @@ namespace MediaPlayer.MediaFramework
         public void OpenDecode(string uri)
         {
             Uri = uri;
-            formatContext = FormatContext.OpenInputUrl(uri);
-            formatContext.LoadStreamInfo();
-            MediaStream? videoStream = formatContext.FindBestStreamOrNull(Sdcb.FFmpeg.Raw.AVMediaType.Video);
-            MediaStream? audioStream = formatContext.FindBestStreamOrNull(Sdcb.FFmpeg.Raw.AVMediaType.Audio);
-            VideoDecoder = videoStream != null ? VideoDecoder.Create(videoStream.Value,stateMachine) : null;
-            AudioDecoder = audioStream != null ? AudioDecoder.Create(audioStream.Value, stateMachine) : null;
-            if (HasAudio)
+            stateMachine.MediaStatus = MediaStatus.Prepare;
+            try
             {
-                CreateAudioProvider(AudioDecoder!.Rate, AudioDecoder.Bits, AudioDecoder.Channels);
-                audioEncoder = new(Codec.FindEncoderById(AVCodecID.PcmS16le))
+                formatContext = FormatContext.OpenInputUrl(uri);
+                formatContext.LoadStreamInfo();
+                MediaStream? videoStream = formatContext.FindBestStreamOrNull(Sdcb.FFmpeg.Raw.AVMediaType.Video);
+                MediaStream? audioStream = formatContext.FindBestStreamOrNull(Sdcb.FFmpeg.Raw.AVMediaType.Audio);
+                VideoDecoder = videoStream != null ? VideoDecoder.Create(videoStream.Value, stateMachine) : null;
+                AudioDecoder = audioStream != null ? AudioDecoder.Create(audioStream.Value, stateMachine) : null;
+                if (HasAudio)
                 {
-                    ChLayout = GetChannelLayout(AudioStream!.WaveFormat.Channels),
-                    SampleFormat = AVSampleFormat.S16,
-                    SampleRate = AudioStream!.WaveFormat.SampleRate,
-                    BitsPerCodedSample = AudioStream!.WaveFormat.BitsPerSample,
-                };
-                audioEncoder.TimeBase = new AVRational(1, audioEncoder.SampleRate);
-                audioEncoder.Open(Codec.FindEncoderById(AVCodecID.PcmS16le));
+                    CreateAudioProvider(AudioDecoder!.Rate, AudioDecoder.Bits, AudioDecoder.Channels);
+                    audioEncoder = new(Codec.FindEncoderById(AVCodecID.PcmS16le))
+                    {
+                        ChLayout = GetChannelLayout(AudioStream!.WaveFormat.Channels),
+                        SampleFormat = AVSampleFormat.S16,
+                        SampleRate = AudioStream!.WaveFormat.SampleRate,
+                        BitsPerCodedSample = AudioStream!.WaveFormat.BitsPerSample,
+                    };
+                    audioEncoder.TimeBase = new AVRational(1, audioEncoder.SampleRate);
+                    audioEncoder.Open(Codec.FindEncoderById(AVCodecID.PcmS16le));
+                }
+            }
+            catch(Exception)
+            {
+                stateMachine.MediaStatus = MediaStatus.Stop;
             }
         }
         private void CreateAudioProvider(int rate, int bits, int channels)
@@ -88,32 +96,45 @@ namespace MediaPlayer.MediaFramework
             ffmpeg.av_channel_layout_default(&layout, nb_channels);
             return layout;
         }
+        
         public void Play()
         {
-            if(formatContext==null)  return; 
-            Task.Run(() =>
+            if (stateMachine.MediaStatus == MediaStatus.Playing) return;
+            if (stateMachine.MediaStatus == MediaStatus.Pause)
             {
-                foreach(var packet in formatContext!.ReadPackets())
-                {
-                    if (packet.StreamIndex == VideoDecoder?.SteamIndex)
-                        VideoDecoder.CachingPackets.Add(packet.Clone());
-                    else if (packet.StreamIndex == AudioDecoder!.SteamIndex)
-                        AudioDecoder.CachingPackets.Add(packet.Clone());
-                }
-                VideoDecoder?.CachingPackets.CompleteAdding();
-                AudioDecoder?.CachingPackets.CompleteAdding();
-            });
+                stateMachine.MediaStatus = MediaStatus.Playing;
+                return;
+            }
+            else if (!string.IsNullOrEmpty(Uri)&& stateMachine.MediaStatus==MediaStatus.Stop)
+            {
+                OpenDecode(Uri);
+            }
+            if (stateMachine.MediaStatus != MediaStatus.Prepare) return;
+
+            playToken = new CancellationTokenSource();
+            RunReadPackets();
             VideoDecoder?.RunDecode();
             AudioDecoder?.RunDecode();
-            playerThread = new Thread(RunDecodeThread);
+            playerThread = new Thread(new ParameterizedThreadStart(RunDecodeThread));
             playerThread.IsBackground = true;
-            playerThread.Start();
+            playerThread.Start(playToken.Token);
         }
-        public void Stop()
+        
+        public async Task Stop()
         {
+            if (stateMachine.MediaStatus == MediaStatus.Stop) return;
+            await Task.Run(() =>
+            {
+                playToken?.Cancel();
+                int i = 0;
+                do
+                {
+                    Thread.Sleep(10);
+                    i++;
+                } while (stateMachine.MediaStatus != MediaStatus.Stop && i < 5);
+            });
             waveOut.Stop();
-            stateMachine.MediaStatus = MediaStatus.Stop;
-            Dispose();
+            await DisposeAsync();
         }
         public void Pause()
         {
@@ -142,18 +163,54 @@ namespace MediaPlayer.MediaFramework
             }
 
         }
-        private void RunDecodeThread()
+        /// <summary>
+        /// 开始读取包
+        /// </summary>
+        private void RunReadPackets()
         {
+            
+            if (formatContext == null) return;
+            Task.Run(() =>
+            {
+                foreach (var packet in formatContext!.ReadPackets())
+                {
+
+                    if (stateMachine.MediaStatus == MediaStatus.Pause)
+                    {
+                        do
+                        {
+                            Thread.Sleep(30);
+                        } while (stateMachine.MediaStatus == MediaStatus.Pause);
+                    }
+                    else if (stateMachine.MediaStatus == MediaStatus.Stop)
+                    {
+                        break;
+                    }
+                    if (packet.StreamIndex == VideoDecoder?.SteamIndex)
+                        VideoDecoder.CachingPackets.Add(packet.Clone());
+                    else if (packet.StreamIndex == AudioDecoder!.SteamIndex)
+                        AudioDecoder.CachingPackets.Add(packet.Clone());
+                }
+                VideoDecoder?.CachingPackets.CompleteAdding();
+                AudioDecoder?.CachingPackets.CompleteAdding();
+            });
+        }
+        private async void RunDecodeThread(object? state)
+        {
+            if (state == null) return;
+            CancellationToken token = (CancellationToken)state!;
             stateMachine.MediaStatus = MediaStatus.Playing;
             while(true)
             {
-                if(stateMachine.MediaStatus==MediaStatus.Pause)
+                if(stateMachine.MediaStatus== MediaStatus.Pause)
                 {
                     Thread.Sleep(30);
                     continue;
-                }else if(stateMachine.MediaStatus == MediaStatus.Stop)
+                }
+                else if (token.IsCancellationRequested)
                 {
-                    break;
+                    stateMachine.MediaStatus = MediaStatus.Stop;
+                    return;
                 }
                 Frame? frame=null;
                 if (HasAudio && HasVideo)
@@ -195,6 +252,8 @@ namespace MediaPlayer.MediaFramework
                 }
                 frame.Unref();
             }
+            ///播放完后释放资源
+            await Stop();
         }
         private Frame? GetAudioFrame()
         {
@@ -203,7 +262,7 @@ namespace MediaPlayer.MediaFramework
             {
                 return null;//丢弃超时的包
             }
-            else if (AudioDecoder.Cur_Timestamp - stateMachine.CurTime > 10)
+            else if (AudioDecoder.Cur_Timestamp - stateMachine.CurTime > 0)
             {
                 Thread.Sleep((int)(AudioDecoder.Cur_Timestamp - stateMachine.CurTime));
             }
@@ -216,7 +275,7 @@ namespace MediaPlayer.MediaFramework
             {
                 return null;
             }
-            else if (VideoDecoder.Cur_Timestamp - stateMachine.CurTime > 10)
+            else if (VideoDecoder.Cur_Timestamp - stateMachine.CurTime > 0)
             {
                 Thread.Sleep((int)(VideoDecoder.Cur_Timestamp - stateMachine.CurTime));
             }
@@ -241,10 +300,12 @@ namespace MediaPlayer.MediaFramework
             }
         }
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            VideoDecoder?.Dispose();
-            AudioDecoder?.Dispose();
+            if(VideoDecoder?.IsStop==false)
+                await VideoDecoder.Stop();
+            if(AudioDecoder?.IsStop==false)
+                await AudioDecoder.Stop();
             formatContext?.Dispose();
             audioEncoder?.Dispose();
             AudioStream?.Clear();
