@@ -24,36 +24,44 @@ namespace MediaPlayer.WPF.Demo
     /// </summary>
     public partial class MainWindow : Window
     {
-        public Player Player { get; } = new Player();
+        public Player Player { get; init; } = new Player();
         public MainWindow()
         {
             InitializeComponent();
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        private async void Button_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
             if(openFileDialog.ShowDialog()==true )
             {
-                Player.Open(openFileDialog.FileName);
-                Player.Play();
+                await Player.OpenAsync(openFileDialog.FileName);
+                await Player.Play();
             }
         }
 
-        private void Button_Click_1(object sender, RoutedEventArgs e)
+        private async void Button_Click_1(object sender, RoutedEventArgs e)
         {
-            if(Player.Statu== MediaStatus.Playing)
+            if(Player.IsPlaying)
             {
                 Player.Pause();
-            }else if (Player.Statu == MediaStatus.Pause)
+            }else
             {
-                Player.Play();
+                await Player.Play();
             }
         }
 
-        private void Button_Click_2(object sender, RoutedEventArgs e)
+        private async void Button_Click_2(object sender, RoutedEventArgs e)
         {
-            Player.Stop();
+            await Player.Stop();
+        }
+
+        private async void Button_Click_3(object sender, RoutedEventArgs e)
+        {
+            if (Uri.IsWellFormedUriString(UrlBox.Text, UriKind.Absolute))
+                await Player.OpenAsync(UrlBox.Text);
+            else
+                MessageBox.Show("不是一个有效的URL");
         }
     }
 }

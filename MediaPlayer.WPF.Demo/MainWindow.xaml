@@ -10,21 +10,34 @@
     <Grid>
         <DockPanel>
             <Grid DockPanel.Dock="Bottom">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition/>
-                    <ColumnDefinition/>
-                    <ColumnDefinition/>
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
-                    <Button Content="打开" Click="Button_Click" Width="100"></Button>
-                    <Button Content="播放/暂停" Click="Button_Click_1" Width="100"></Button>
-                    <Button Content="停止" Click="Button_Click_2" Width="100"></Button>
-                </StackPanel>
-                <TextBlock Grid.Column="2" HorizontalAlignment="Right">
-                    <Run Text="{Binding Player.Position,Converter={x:Static local:TicketToTimeSpanConverter.Current},ElementName=window}"></Run>
-                    <Run Text="/"></Run>
-                    <Run Text="{Binding Player.Duration,Converter={x:Static local:TicketToTimeSpanConverter.Current},ElementName=window}"></Run>
-                </TextBlock>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+                <Slider Value="{Binding Player.Position,ElementName=window}" Maximum="{Binding Player.Duration,ElementName=window}"></Slider>
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="URL："></TextBlock>
+                        <TextBox Name="UrlBox" Width="200"></TextBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Content="打开URL" Click="Button_Click_3" Width="100"></Button>
+                        <Button Content="打开" Click="Button_Click" Width="100"></Button>
+                        <Button Content="播放/暂停" Click="Button_Click_1" Width="100"></Button>
+                        <Button Content="停止" Click="Button_Click_2" Width="100"></Button>
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" HorizontalAlignment="Right">
+                        <Run Text="{Binding Player.Position,Converter={x:Static local:TicketToTimeSpanConverter.Current},ElementName=window}"></Run>
+                        <Run Text="/"></Run>
+                        <Run Text="{Binding Player.Duration,Converter={x:Static local:TicketToTimeSpanConverter.Current},ElementName=window}"></Run>
+                    </TextBlock>
+                </Grid>
+
             </Grid>
             <wpf:MediaPlayerHost Player="{Binding Player,ElementName=window}"></wpf:MediaPlayerHost>
         </DockPanel>

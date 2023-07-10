@@ -16,25 +16,29 @@ namespace MediaPlayer.MediaFramework
 {
     public abstract class Decoder:IDisposable
     {
-        protected CodecContext codecContext;
+        protected CodecContext? codecContext;
         private CancellationTokenSource? runToken;//任务token
         private StateMachine stateMachine;
         private bool disposedValue;
+        private BlockingCollection<Packet> CachingPackets = new BlockingCollection<Packet>(200);
+        private BlockingCollection<Frame> CachingFrames = new BlockingCollection<Frame>(5);
         internal bool IsStop { get;private set; } = true;
 
         public MediaStream MediaStream { get; }
-
+        public int PacketCount => CachingPackets.Count;
         public int SteamIndex { get => MediaStream.Index; }
         /// <summary>
         /// 是否读取完成
         /// </summary>
         public bool IsCompleted { get; private set; } = false;
-        public BlockingCollection<Packet> CachingPackets { get; private set; } = new BlockingCollection<Packet>(50);
-        public BlockingCollection<Frame> CachingFrames { get; private set; } = new BlockingCollection<Frame>(5);
+        
         public long Cur_Timestamp { get; set; }
+        public bool HasFrame => CachingFrames.Count > 0;
+
         protected Decoder(MediaStream inStream, StateMachine stateMachine)
         {
             this.stateMachine = stateMachine;
+            ClearCaching();
             MediaStream = inStream;
             codecContext = new CodecContext(Codec.FindDecoderById(inStream.Codecpar!.CodecId));
             codecContext.FillParameters(inStream.Codecpar);
@@ -43,8 +47,9 @@ namespace MediaPlayer.MediaFramework
 
         internal IEnumerable<Frame> DecodePacket(Packet? packet)
         {
+            if (codecContext == null) yield return new Frame();
             using Frame dstFrame = new Frame();
-            foreach (var frame in codecContext.DecodePacket(packet, dstFrame))
+            foreach (var frame in codecContext!.DecodePacket(packet, dstFrame))
             {
                 yield return frame;
             }
@@ -52,16 +57,20 @@ namespace MediaPlayer.MediaFramework
         protected void UpdateCurTimestampFromFrame(Frame frame)
         {
             if (frame == null) return;
-            Cur_Timestamp = 0;
+            long cur_Timestamp = 0;
             if (frame.PktDts != AV_NOPTS_VALUE)
             {
-                Cur_Timestamp = frame.PktDts;
+                cur_Timestamp = frame.PktDts;
             }
             else if (frame.Pts != AV_NOPTS_VALUE)
             {
-                Cur_Timestamp = frame.Pts;
+                cur_Timestamp = frame.Pts;
             }
-            Cur_Timestamp=(long)((Cur_Timestamp * av_q2d(MediaStream.TimeBase)) * 1000);
+            Cur_Timestamp= GetCurTimestamp(cur_Timestamp);
+        }
+        public long GetCurTimestamp(long pts)
+        {
+            return (long)((pts * av_q2d(MediaStream.TimeBase)) * 1000);
         }
         /// <summary>
         /// 读取下一帧
@@ -69,13 +78,43 @@ namespace MediaPlayer.MediaFramework
         /// <returns></returns>
         internal Frame? ReadNextFrame()
         {
-            if(CachingFrames.Count==0) return null;
+            if(CachingFrames==null) return null;
+            if (CachingFrames.IsCompleted)
+            {
+                IsCompleted = true;
+                return null;
+            }
+            if(CachingFrames.Count == 0)
+                return null;
+
             var f= CachingFrames.Take();
             if (f == null) return null;
             UpdateCurTimestampFromFrame(f);
-            if (CachingFrames.IsCompleted)
-                IsCompleted = true;
             return f;
+        }
+        public void AddPacket(Packet packet)
+        {
+            CachingPackets.Add(packet);
+        }
+        public void AddPacketCompleted()
+        {
+            CachingPackets.CompleteAdding();
+        }
+        public void AddFrame(Frame frame)
+        {
+            CachingFrames.Add(frame);
+        }
+        public void AddFrameCompleted()
+        {
+            CachingFrames.CompleteAdding();
+        }
+
+        internal void ClearCaching()
+        {
+            for (int i = 0; i < CachingPackets.Count; i++)
+                CachingPackets.Take().Free();
+            for (int i = 0; i < CachingFrames.Count; i++)
+                CachingFrames.Take().Free();
         }
         /// <summary>
         /// 运行解码缓存帧
@@ -83,13 +122,14 @@ namespace MediaPlayer.MediaFramework
         internal void RunDecode()
         {
             runToken = new CancellationTokenSource();
+            var token= runToken.Token;
             Task.Run(() =>
             {
-               var token= runToken.Token;
                 IsStop = false;
                 while (true)
                 {
-                    if (stateMachine.MediaStatus == MediaStatus.Pause)
+                    if (codecContext == null) return;
+                    if (stateMachine.MediaStatus == MediaStatus.Pause|| CachingPackets == null|| CachingFrames.Count==CachingFrames.BoundedCapacity)
                     {
                         Thread.Sleep(30);
                         continue;
@@ -99,42 +139,31 @@ namespace MediaPlayer.MediaFramework
                         IsStop =true;
                         break;
                     }
-                    if (CachingPackets.IsCompleted)
+                    lock (CachingPackets)
                     {
-                        foreach (var frame in DecodePacket(null))
+                        if (CachingPackets.IsCompleted)
                         {
-                            CachingFrames.Add(frame.Clone());
+                            foreach (var frame in DecodePacket(null))
+                            {
+                                AddFrame(frame.Clone());
+                            }
+                            AddFrameCompleted();
+                            break;
                         }
-                        CachingFrames.CompleteAdding();
-                        break;
-                    }
-                    else
-                    {
-                        Packet p = CachingPackets.Take();
-                        foreach (var frame in DecodePacket(p))
+                        else if(CachingPackets.Count>0)
                         {
-                            CachingFrames.Add(frame.Clone());
+                            Packet p = CachingPackets.Take();
+                            foreach (var frame in DecodePacket(p))
+                            {
+                                AddFrame(frame.Clone());
+                            }
+                            p.Unref();
                         }
-                        p.Unref();
                     }
                 }
             });
         }
-        internal async ValueTask Stop()
-        {
-            await Task.Run(() =>
-            {
-                runToken?.Cancel();
-                int i = 0;
-                do
-                {
-                    Thread.Sleep(10);
-                    i++;
-                } while (stateMachine.MediaStatus != MediaStatus.Stop && i < 5);
-            });
-            Dispose();
-            
-        }
+
 
         protected virtual void Dispose(bool disposing)
         {
@@ -142,7 +171,10 @@ namespace MediaPlayer.MediaFramework
             {
                 if (disposing)
                 {
-                    codecContext.Dispose();
+                    runToken?.CancelAfter(10);
+                   
+                    codecContext?.Dispose();
+                    codecContext = null;
                     CachingPackets.Dispose();
                     CachingFrames.Dispose();
                     // TODO: 释放托管状态(托管对象)

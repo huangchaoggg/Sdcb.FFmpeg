@@ -21,8 +21,6 @@ namespace MediaPlayer.Extension
 {
     public static class FrameExtension
     {
-        static VideoFrameConverter converter = new VideoFrameConverter();
-        static SampleConverter sampleConverter = new();
         /// <summary>
         /// 将帧转换为argb32格式的bitmap
         /// </summary>
@@ -30,6 +28,7 @@ namespace MediaPlayer.Extension
         /// <returns></returns>
         public static Bitmap GetBitmap(this Frame frame)
         {
+            VideoFrameConverter converter = new VideoFrameConverter();
             Frame dstFrame = Frame.CreateVideo(frame.Width, frame.Height, AVPixelFormat.Argb);
             if(frame.Format != (int)AVPixelFormat.Rgb24)
             {
@@ -48,6 +47,7 @@ namespace MediaPlayer.Extension
         public static BitmapSource? GetBitmapSource(this Frame frame)
         {
             if (frame == null|| frame.Width<1) return null;
+            VideoFrameConverter converter = new VideoFrameConverter();
             Frame dstFrame = Frame.CreateVideo(frame.Width, frame.Height, AVPixelFormat.Rgb24);
             if (frame.Format != (int)AVPixelFormat.Rgb24)
             {
@@ -63,7 +63,8 @@ namespace MediaPlayer.Extension
         }
         public static byte[] GetBitmapBuffer(this Frame frame)
         {
-            if (frame == null || frame.Width < 1) return null;
+            if (frame == null || frame.Width < 1) return new byte[0];
+            VideoFrameConverter converter = new VideoFrameConverter();
             Frame dstFrame = Frame.CreateVideo(frame.Width, frame.Height, AVPixelFormat.Rgb24);
             if (frame.Format != (int)AVPixelFormat.Rgb24)
             {
@@ -79,6 +80,7 @@ namespace MediaPlayer.Extension
         {
             if (frame.SampleRate > 0)
             {
+                SampleConverter sampleConverter = new();
                 Frame dstFrame = audioEncoder.CreateFrame();
                 if (!sampleConverter.Initialized)
                 {

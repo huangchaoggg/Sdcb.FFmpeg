@@ -27,8 +27,8 @@ namespace MediaPlayer.MediaFramework
             get;
             private set;
         }
-        public double Height => codecContext.Height;
-        public double Width=> codecContext.Width;
+        public double Height => codecContext==null?0:codecContext.Height;
+        public double Width=> codecContext==null?0:codecContext.Width;
         public static VideoDecoder Create(MediaStream inAudioStream, StateMachine stateMachine) => new VideoDecoder(inAudioStream, stateMachine);
 
         private void RefreshFPS(MediaStream stream)
@@ -36,7 +36,7 @@ namespace MediaPlayer.MediaFramework
             FPS = av_q2d(stream.AvgFrameRate) > 0 ? av_q2d(stream.AvgFrameRate) : av_q2d(stream.RFrameRate);
             if (FPS <= 0)
             {
-                FPS = av_q2d(codecContext.Framerate) > 0 ? av_q2d(codecContext.Framerate) : 0;
+                FPS = av_q2d(codecContext!.Framerate) > 0 ? av_q2d(codecContext.Framerate) : 0;
             }
             if (FPS <= 0)
             {

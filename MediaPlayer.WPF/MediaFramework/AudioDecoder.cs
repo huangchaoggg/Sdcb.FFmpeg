@@ -16,9 +16,9 @@ namespace MediaPlayer.MediaFramework
         {
         }
 
-        public int Channels { get => codecContext.ChLayout.nb_channels; }
-        public int Bits { get => codecContext.BitsPerCodedSample; }
-        public int Rate { get => (int)codecContext.SampleRate; }
+        public int Channels { get => codecContext==null?0:codecContext.ChLayout.nb_channels; }
+        public int Bits { get => codecContext == null ? 0 : codecContext.BitsPerCodedSample; }
+        public int Rate { get => (int)(codecContext == null ? 0 : codecContext.SampleRate); }
 
         public static AudioDecoder Create(MediaStream inAudioStream, StateMachine stateMachine) => new AudioDecoder(inAudioStream, stateMachine);
 

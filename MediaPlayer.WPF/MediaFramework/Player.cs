@@ -9,7 +9,7 @@ using Sdcb.FFmpeg.Utils;
 
 namespace MediaPlayer.MediaFramework
 {
-    public class Player:INotifyPropertyChanged,IAsyncDisposable
+    public class Player:INotifyPropertyChanged,IDisposable
     {
         private string? uri;
         
@@ -55,6 +55,8 @@ namespace MediaPlayer.MediaFramework
         public bool HasAudio { get => mediaContainer.HasAudio; }
         public MediaStatus Statu { get => mediaContainer.Statu; }
 
+        public bool IsPlaying { get => mediaContainer.IsPlaying; }//是否正在播放
+
         private long position=0;
         public long Position { 
             get => position; 
@@ -70,27 +72,29 @@ namespace MediaPlayer.MediaFramework
         public double Height { get => mediaContainer.VideoDecoder?.Height??0; }
         public double Width { get=> mediaContainer?.VideoDecoder?.Width ?? 0; }
 
-        public async void Open(string uri)
+        public async Task OpenAsync(string uri)
         {
             Uri = uri;
             await Stop();
-            mediaContainer.OpenDecode(uri);
+            await mediaContainer.OpenAsync(uri);
             Duration = mediaContainer.Duration;
             OpenEvent?.Invoke(this,EventArgs.Empty);
         }
-        
-        public void Play()
+        public async Task OpenPlayAsync(string uri)
         {
-            mediaContainer.Play();
+            await OpenAsync(uri);
+            await Play();
+        }
+        public async ValueTask Play()
+        {
+            await mediaContainer.Play();
         }       
         
         
         public async ValueTask Stop()
         {
             await mediaContainer.Stop();
-            Set(ref position,0,nameof(Position));
-            await DisposeAsync();
-
+            Position = 0;
         }
         public void Pause()
         {
@@ -107,9 +111,9 @@ namespace MediaPlayer.MediaFramework
 
         }
         
-        public async ValueTask DisposeAsync()
+        public void Dispose()
         {
-            await mediaContainer.DisposeAsync();
+            mediaContainer.Dispose();
             
         }
 

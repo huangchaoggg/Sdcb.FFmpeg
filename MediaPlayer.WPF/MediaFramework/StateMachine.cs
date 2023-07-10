@@ -5,10 +5,22 @@ namespace MediaPlayer.MediaFramework
 {
     public enum MediaStatus
     {
-        Prepare,//准备状态
-        Playing,//播放状态
-        Pause,//暂停状态
-        Stop//停止状态
+        /// <summary>
+        /// 准备状态
+        /// </summary>
+        Prepare,
+        /// <summary>
+        /// 播放状态
+        /// </summary>
+        Playing,
+        /// <summary>
+        /// 暂停状态
+        /// </summary>
+        Pause,
+        /// <summary>
+        /// 停止状态
+        /// </summary>
+        Stop
     }
     public class StateMachine
     {
@@ -16,8 +28,8 @@ namespace MediaPlayer.MediaFramework
         private Stopwatch stopwatch = new Stopwatch();
         private MediaStatus mediaStatus;
 
-        public const long ToleranceAudioTime = 500;//音频最多不能超过视频的500毫秒
-        public const long ToleranceVideoTime = 50;//视频最多不能超过音频的50毫秒
+        public const long ToleranceAudioTime = 1500;//音频最多不能超过视频的1500毫秒
+        public const long ToleranceVideoTime = 150;//视频最多不能超过音频的150毫秒
         /// <summary>
         /// 落后时间多不能超过音频的150毫秒
         /// </summary>

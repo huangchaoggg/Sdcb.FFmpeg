@@ -26,12 +26,9 @@ namespace MediaPlayer.Controls.Wpf
     /// </summary>
     public partial class MediaPlayerHost : UserControl
     {
-        int width=1366, height=768;
         public MediaPlayerHost()
         {
             InitializeComponent();
-            //VideoImage = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
-            //VideoCanvas.Source = VideoImage;
         }
         public static readonly DependencyProperty PlayerProperty=DependencyProperty.Register(nameof(Player),typeof(Player),typeof(MediaPlayerHost),
             new PropertyMetadata(null, PlayerCallBackBind));
@@ -41,7 +38,7 @@ namespace MediaPlayer.Controls.Wpf
         {
             base.OnInitialized(e);
         }
-        public WriteableBitmap VideoImage { get; private set; }
+        public WriteableBitmap? VideoImage { get; private set; }
         //private Graphics graphics;
         private static void PlayerCallBackBind(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -49,6 +46,7 @@ namespace MediaPlayer.Controls.Wpf
             {
                 player.OpenEvent += (s, ev) =>
                 {
+                    if (!player.HasVideo) return;
                     host.VideoImage = new WriteableBitmap((int)player.Width, (int)player.Height, 0, 0, PixelFormats.Rgb24, null);
                     host.VideoCanvas.Source = host.VideoImage;
                 };
@@ -57,7 +55,7 @@ namespace MediaPlayer.Controls.Wpf
                     Application.Current?.Dispatcher.Invoke(() =>
                     {
                         if(frame.Width>0)
-                            host.VideoImage.WritePixels(new Int32Rect(0, 0, (int)player.Width, (int)player.Height),frame.GetBitmapBuffer(), frame.Width * 3,0,0);
+                            host.VideoImage?.WritePixels(new Int32Rect(0, 0, (int)player.Width, (int)player.Height),frame.GetBitmapBuffer(), frame.Width * 3,0,0);
                     });
                 };
             }
