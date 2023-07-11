@@ -12,6 +12,8 @@ using Sdcb.FFmpeg.Formats;
 using Sdcb.FFmpeg.Toolboxs.Extensions;
 using Sdcb.FFmpeg.Utils;
 
+using SoundTouch.Net.NAudioSupport;
+
 using static Sdcb.FFmpeg.Raw.ffmpeg;
 
 namespace MediaPlayer.MediaFramework
@@ -43,6 +45,5 @@ namespace MediaPlayer.MediaFramework
                 FPS=((stream.Duration / stream.NbFrames * av_q2d(stream.TimeBase)) * 1000);
             }
         }
-       
     }
 }

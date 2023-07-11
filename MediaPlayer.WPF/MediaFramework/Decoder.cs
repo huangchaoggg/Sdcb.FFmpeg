@@ -164,15 +164,16 @@ namespace MediaPlayer.MediaFramework
             });
         }
 
-
+        public void Stop()
+        {
+            runToken?.CancelAfter(10);
+        }
         protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue)
             {
                 if (disposing)
                 {
-                    runToken?.CancelAfter(10);
-                   
                     codecContext?.Dispose();
                     codecContext = null;
                     CachingPackets.Dispose();

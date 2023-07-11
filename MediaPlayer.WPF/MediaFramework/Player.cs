@@ -5,7 +5,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
+using NAudio.Wave.SampleProviders;
 using Sdcb.FFmpeg.Utils;
+
+using SoundTouch.Net.NAudioSupport;
 
 namespace MediaPlayer.MediaFramework
 {
@@ -28,7 +31,7 @@ namespace MediaPlayer.MediaFramework
             timer.Change(0, 10);
         }
 
-        private void MediaContainer_ReadFrameEvent(object? sender, Frame? e)
+        private void MediaContainer_ReadFrameEvent(object? sender, Frame e)
         {
             ReadFrameEvent?.Invoke(sender, e);
         }
@@ -48,7 +51,10 @@ namespace MediaPlayer.MediaFramework
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             }
         }
-
+        public void OnPropertyChanged([CallerMemberName] string propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
         public string? Uri { get => uri; private set => Set(ref uri,value); }
 
         public bool HasVideo { get=> mediaContainer.HasVideo; }
@@ -71,7 +77,30 @@ namespace MediaPlayer.MediaFramework
         public long Duration { get => duration; set => Set(ref duration, value); }
         public double Height { get => mediaContainer.VideoDecoder?.Height??0; }
         public double Width { get=> mediaContainer?.VideoDecoder?.Width ?? 0; }
-
+        /// <summary>
+        /// 初始值为1
+        /// </summary>
+        public float Volume
+        {
+            get => mediaContainer.Volume;
+            set
+            {
+                mediaContainer.Volume = value;
+                OnPropertyChanged();
+            }
+        }
+        /// <summary>
+        /// 初始值为1
+        /// </summary>
+        public float SpeedRatio
+        {
+            get => mediaContainer.SpeedRatio;
+            set
+            {
+                mediaContainer.SpeedRatio = value;
+                OnPropertyChanged();
+            }
+        }
         public async Task OpenAsync(string uri)
         {
             Uri = uri;

@@ -35,14 +35,23 @@ namespace MediaPlayer.MediaFramework
         /// </summary>
         public const long BehindTime = 150;
 
+        internal float SpeedRatio 
+        { 
+            get => speedRatio;
+            set
+            {
+                speedRatio = value;
+            }
+        }
         private long oldElapsedMilliseconds=0;
         private long curTime=0;
+        private float speedRatio = 1;
 
         public long CurTime {
             get
             {
                 long cur = stopwatch.ElapsedMilliseconds;
-                curTime += cur - oldElapsedMilliseconds;
+                curTime += (long)((cur - oldElapsedMilliseconds) * SpeedRatio);
                 oldElapsedMilliseconds = cur;
                 return curTime;
             }

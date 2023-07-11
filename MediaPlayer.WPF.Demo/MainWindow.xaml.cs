@@ -36,6 +36,7 @@ namespace MediaPlayer.WPF.Demo
             if(openFileDialog.ShowDialog()==true )
             {
                 await Player.OpenAsync(openFileDialog.FileName);
+                UrlBox.Text = openFileDialog.FileName;
                 await Player.Play();
             }
         }
