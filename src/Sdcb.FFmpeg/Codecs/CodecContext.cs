@@ -76,6 +76,10 @@ public unsafe partial class CodecContext : SafeHandle
     /// <see cref="avcodec_receive_frame(AVCodecContext*, AVFrame*)"/>
     /// </summary>
     public CodecResult ReceiveFrame(Frame frame) => ToCodecResult(avcodec_receive_frame(this, frame));
+    /// <summary>
+    /// <see cref="avcodec_flush_buffers"/>
+    /// </summary>
+    public void FlushBuffers()=>avcodec_flush_buffers(this);
 
     internal static CodecResult ToCodecResult(int result, [CallerMemberName] string? callerMember = null) => result switch
     {

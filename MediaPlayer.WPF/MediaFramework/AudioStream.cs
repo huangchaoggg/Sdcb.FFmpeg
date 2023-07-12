@@ -31,7 +31,8 @@ namespace MediaPlayer.MediaFramework
             if (arrayBufferWriter.Count< count)
                 c = arrayBufferWriter.Count;
             Array.Copy(arrayBufferWriter.GetRange(0, c).ToArray(), 0, buffer, offset, c);
-            arrayBufferWriter.RemoveRange(0, c);
+            if(arrayBufferWriter.Count>=c)
+                arrayBufferWriter.RemoveRange(0, c);
             //Position += c;
             return c;
         }

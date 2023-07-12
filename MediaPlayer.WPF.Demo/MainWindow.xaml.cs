@@ -37,7 +37,7 @@ namespace MediaPlayer.WPF.Demo
             {
                 await Player.OpenAsync(openFileDialog.FileName);
                 UrlBox.Text = openFileDialog.FileName;
-                await Player.Play();
+                Player.Play();
             }
         }
 
@@ -48,7 +48,11 @@ namespace MediaPlayer.WPF.Demo
                 Player.Pause();
             }else
             {
-                await Player.Play();
+                if (Player.Statu == MediaStatus.Stop)
+                {
+                    await Player.RepeatPlayerAsync();
+                }
+                Player.Play();
             }
         }
 
@@ -63,6 +67,16 @@ namespace MediaPlayer.WPF.Demo
                 await Player.OpenAsync(UrlBox.Text);
             else
                 MessageBox.Show("不是一个有效的URL");
+        }
+
+        private void Button_Click_4(object sender, RoutedEventArgs e)
+        {
+            Player.PreviewFramePrev();
+        }
+
+        private void Button_Click_5(object sender, RoutedEventArgs e)
+        {
+            Player.PreviewFrameNext();
         }
     }
 }

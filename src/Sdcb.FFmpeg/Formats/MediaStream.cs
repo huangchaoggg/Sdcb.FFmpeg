@@ -47,6 +47,6 @@ namespace Sdcb.FFmpeg.Formats
         /// <summary>
         /// <see cref="avformat_index_get_entry(AVStream*, int)"/>
         /// </summary>
-        public IndexEntity SerchIndex(int index) => IndexEntity.FromNative(avformat_index_get_entry(this, index));
+        public IndexEntity SearchIndex(int index) => IndexEntity.FromNative(avformat_index_get_entry(this, index));
     }
 }

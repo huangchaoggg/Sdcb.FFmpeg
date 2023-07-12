@@ -59,6 +59,8 @@ namespace MediaPlayer.MediaFramework
 
         public bool HasVideo { get=> mediaContainer.HasVideo; }
         public bool HasAudio { get => mediaContainer.HasAudio; }
+        public AudioDecoder? AudioDecoder { get => mediaContainer.AudioDecoder; }
+        public VideoDecoder? VideoDecoder { get => mediaContainer.VideoDecoder; }
         public MediaStatus Statu { get => mediaContainer.Statu; }
 
         public bool IsPlaying { get => mediaContainer.IsPlaying; }//是否正在播放
@@ -112,11 +114,23 @@ namespace MediaPlayer.MediaFramework
         public async Task OpenPlayAsync(string uri)
         {
             await OpenAsync(uri);
-            await Play();
+            Play();
         }
-        public async ValueTask Play()
+        /// <summary>
+        /// 重播
+        /// </summary>
+        /// <returns></returns>
+        public async Task RepeatPlayerAsync()
         {
-            await mediaContainer.Play();
+            if (!string.IsNullOrEmpty(Uri))
+            {
+                await OpenAsync(Uri);
+                Play();
+            }
+        }
+        public void Play()
+        {
+            mediaContainer.Play();
         }       
         
         
@@ -124,6 +138,7 @@ namespace MediaPlayer.MediaFramework
         {
             await mediaContainer.Stop();
             Position = 0;
+            Duration = 0;
         }
         public void Pause()
         {
@@ -133,13 +148,19 @@ namespace MediaPlayer.MediaFramework
         public void PreviewFramePrev()
         {
             Pause();
+            mediaContainer.PreviewFramePrev();
         }
         public void PreviewFrameNext()
         {
             Pause();
-
+            mediaContainer.PreviewFrameNext();
         }
-        
+
+        public Frame? GetVideoFrame(int index)
+        {
+            Pause();
+            return mediaContainer.FindVideoFrame(index);
+        }
         public void Dispose()
         {
             mediaContainer.Dispose();
