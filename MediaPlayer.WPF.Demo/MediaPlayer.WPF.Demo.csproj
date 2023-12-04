@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Sdcb.FFmpeg.runtime.windows-x64" Version="5.1.2" />
+    <PackageReference Include="Sdcb.FFmpeg.runtime.windows-x64" Version="6.0.26" />
   </ItemGroup>
 
   <ItemGroup>
