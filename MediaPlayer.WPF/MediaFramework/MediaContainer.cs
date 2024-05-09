@@ -17,6 +17,8 @@ using NAudio.Wave.SampleProviders;
 using Sdcb.FFmpeg.Codecs;
 using Sdcb.FFmpeg.Formats;
 using Sdcb.FFmpeg.Raw;
+using Sdcb.FFmpeg.Swresamples;
+using Sdcb.FFmpeg.Swscales;
 using Sdcb.FFmpeg.Utils;
 
 using SoundTouch.Net.NAudioSupport;
@@ -48,6 +50,8 @@ namespace MediaPlayer.MediaFramework
         private Thread? playerThread;//播放器解码线程
         private CancellationTokenSource? playToken;
         private CancellationTokenSource? openToken;
+        private VideoFrameConverter? converter;
+        private SampleConverter? sampleConverter;
 
         private bool isWaveDevice = true;//音频播放器是否初始化成功的标志
         public string? Uri { get; set; }
@@ -66,7 +70,7 @@ namespace MediaPlayer.MediaFramework
                 if (stateMachine.CurTime == value) return;
                 stateMachine.CurTime = value;
                 if (stateMachine.MediaStatus == MediaStatus.Stop) return;
-                stateMachine.Prepare();
+                Pause();
                 long oldCurTime = value;
                 Task.Delay(200).ContinueWith(r =>
                 {
@@ -141,12 +145,15 @@ namespace MediaPlayer.MediaFramework
             }
             if (formatContext != null)
                 await Stop();
+            stateMachine=new StateMachine();
             stateMachine.Prepare();
             openToken = new CancellationTokenSource();
             await Task.Run(() =>
             {
                 try
                 {
+                    converter = new VideoFrameConverter();
+                    sampleConverter = new SampleConverter();
 
                     formatContext = FormatContext.OpenInputIO(context); //
                     formatContext.LoadStreamInfo();
@@ -155,6 +162,10 @@ namespace MediaPlayer.MediaFramework
                     if (videoStream != null)
                     {
                         VideoDecoder =  VideoDecoder.Create(videoStream.Value, stateMachine);
+                    }
+                    else
+                    {
+                        VideoDecoder = null;
                     }
                     if(audioStream != null)
                     {
@@ -171,6 +182,10 @@ namespace MediaPlayer.MediaFramework
                         };
                         audioEncoder.TimeBase = new AVRational(1, audioEncoder.SampleRate);
                         audioEncoder.Open(Codec.FindEncoderById(codeId));
+                    }
+                    else
+                    {
+                        AudioDecoder = null;
                     }
                     if (Duration > 0)
                     {
@@ -238,11 +253,16 @@ namespace MediaPlayer.MediaFramework
                     i++;
                 } while (stateMachine.MediaStatus != MediaStatus.Stop && i < 5);
             });
-            if(isWaveDevice) 
+            ClearMedia();
+            stateMachine.Stop();
+        }
+        private void ClearMedia()
+        {
+            if (isWaveDevice)
                 waveOut.Stop();
             AudioDecoder?.Stop();
             VideoDecoder?.Stop();
-            stateMachine.Stop();
+            AudioStream?.Clear();
         }
         public async void Pause()
         {
@@ -252,7 +272,7 @@ namespace MediaPlayer.MediaFramework
                 await Task.Delay(30);
             }
             if (isWaveDevice)
-                waveOut.Stop();
+                waveOut.Pause();
         }
 
         public void PreviewFramePrev()
@@ -353,7 +373,7 @@ namespace MediaPlayer.MediaFramework
         /// 播放流线程
         /// </summary>
         /// <param name="state"></param>
-        private async void RunDecodeThread(object? state)
+        private void RunDecodeThread(object? state)
         {
             if (state == null) return;
             CancellationToken token = (CancellationToken)state!;
@@ -422,7 +442,7 @@ namespace MediaPlayer.MediaFramework
                         ReadFrameEvent?.Invoke(this, frame.Clone());
                         if (isWaveDevice&&frame.SampleRate > 0)
                         {
-                            foreach (var packet2 in frame.ConverToPcm16Packet(audioEncoder!))
+                            foreach (var packet2 in sampleConverter!.ConverToPcmPacket(frame,audioEncoder!))
                             {
                                 AudioStream?.Write(packet2.Data.ToArray());
                             }
@@ -439,7 +459,8 @@ namespace MediaPlayer.MediaFramework
                 }
             }
 
-           await Stop();
+            stateMachine.Stop();
+            ClearMedia();
         }
         
         private Frame? GetAudioFrame()
@@ -457,7 +478,7 @@ namespace MediaPlayer.MediaFramework
                 return null;//丢弃超时的包
             }if (!isSeek && timestamp > StateMachine.ToleranceAudioTime)
                 return null;
-            else if (timestamp > 0)
+            else if (timestamp > 1)
             {
                 Thread.Sleep((int)timestamp);
             }
@@ -518,11 +539,11 @@ namespace MediaPlayer.MediaFramework
                 if (isSeek) return;
                 if (stateMachine.MediaStatus == MediaStatus.Stop) return;
                 isSeek = true;
-                stateMachine.Prepare();
-                formatContext?.SeekFrame(stateMachine.CurTime*1000);
                 AudioDecoder?.ClearCaching();
                 VideoDecoder?.ClearCaching();
                 AudioStream?.Clear();
+                formatContext?.SeekFrame(stateMachine.CurTime*1000);
+                Play();
             }
         }
         public void Dispose()
@@ -540,6 +561,11 @@ namespace MediaPlayer.MediaFramework
             audioEncoder = null;
             AudioStream?.Clear();
             AudioStream = null;
+        }
+
+        internal byte[] GetBitmapBuffer(Frame frame)
+        {
+            return converter!.GetBitmapBuffer(frame);
         }
     }
 }

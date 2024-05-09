@@ -21,7 +21,7 @@ namespace MediaPlayer.MediaFramework
     public abstract class Decoder:IDisposable
     {
         protected CodecContext? codecContext;
-        private CancellationTokenSource? runToken;//任务token
+        //private CancellationTokenSource? runToken;//任务token
         private StateMachine stateMachine;
         private bool disposedValue;
         //private BlockingCollection<Packet> CachingPackets = new BlockingCollection<Packet>(200);
@@ -84,7 +84,7 @@ namespace MediaPlayer.MediaFramework
         /// <returns></returns>
         internal Frame? ReadNextFrame()
         {
-            if(CachingFrames==null) return null;
+            if(CachingFrames==null||stateMachine.MediaStatus == MediaStatus.Stop) return null;
             if (CachingFrames.IsCompleted)
             {
                 IsCompleted = true;
@@ -201,7 +201,7 @@ namespace MediaPlayer.MediaFramework
         }
         public void Stop()
         {
-            runToken?.CancelAfter(10);
+            //runToken?.CancelAfter(10);
         }
         public Frame CreateFrame() => codecContext==null?throw new Exception():codecContext.CreateFrame();
         protected virtual void Dispose(bool disposing)

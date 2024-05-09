@@ -177,7 +177,10 @@ namespace MediaPlayer.MediaFramework
             mediaContainer.Dispose();
             
         }
-
+        public byte[] GetBitmapBuffer(Frame frame)
+        {
+            return mediaContainer.GetBitmapBuffer(frame);
+        }
         private void UpdatePosition(object? state)
         {
             OnPropertyChanged(nameof(Position));

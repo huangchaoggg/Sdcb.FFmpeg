@@ -124,7 +124,7 @@ namespace MediaPlayer.MediaFramework
         internal void Prepare()
         {
             if (mediaStatus == MediaStatus.Prepare||mediaStatus==MediaStatus.Pause) return;
-            stopwatch.Stop();
+                stopwatch.Stop();
             mediaStatus = MediaStatus.Prepare;
         }
         internal void Playing()

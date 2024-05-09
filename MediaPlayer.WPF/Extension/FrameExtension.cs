@@ -18,14 +18,14 @@ namespace MediaPlayer.Extension
 {
     public static class FrameExtension
     {
-        static VideoFrameConverter converter = new VideoFrameConverter();
-        static SampleConverter sampleConverter = new();
+        //static VideoFrameConverter converter = new VideoFrameConverter();
+        //static SampleConverter sampleConverter = new();
         /// <summary>
         /// 将帧转换为argb32格式的bitmap
         /// </summary>
         /// <param name="frame"></param>
         /// <returns></returns>
-        public static Bitmap GetBitmap(this Frame frame)
+        public static Bitmap GetBitmap(this VideoFrameConverter converter, Frame frame)
         {
             Frame dstFrame = Frame.CreateVideo(frame.Width, frame.Height, AVPixelFormat.Argb);
             if(frame.Format != (int)AVPixelFormat.Rgb24)
@@ -42,7 +42,7 @@ namespace MediaPlayer.Extension
             bitmap.UnlockBits(data);
             return bitmap;
         }
-        public static BitmapSource? GetBitmapSource(this Frame frame)
+        public static BitmapSource? GetBitmapSource(this VideoFrameConverter converter, Frame frame)
         {
             if (frame == null|| frame.Width<1) return null;
             Frame dstFrame = Frame.CreateVideo(frame.Width, frame.Height, AVPixelFormat.Rgb24);
@@ -58,11 +58,11 @@ namespace MediaPlayer.Extension
             dstFrame.Free();
             return bs;
         }
-        public static byte[] GetBitmapBuffer(this Frame frame)
+        public static byte[] GetBitmapBuffer(this VideoFrameConverter converter, Frame frame)
         {
             if (frame == null || frame.Width < 1) return new byte[0];
-            Frame dstFrame = Frame.CreateVideo(frame.Width, frame.Height, AVPixelFormat.Rgb24);
-            if (frame.Format != (int)AVPixelFormat.Rgb24)
+            Frame dstFrame = Frame.CreateVideo(frame.Width, frame.Height, AVPixelFormat.Rgba64le);
+            if (frame.Format != (int)AVPixelFormat.Rgba64le)
             {
                 converter.ConvertFrame(frame, dstFrame);
             }
@@ -72,7 +72,7 @@ namespace MediaPlayer.Extension
             }
             return dstFrame.ToImageBuffer();
         }
-        public static IEnumerable<Packet> ConverToPcm16Packet(this Frame frame, CodecContext audioEncoder)
+        public static IEnumerable<Packet> ConverToPcmPacket(this SampleConverter sampleConverter, Frame frame, CodecContext audioEncoder)
         {
             if (frame.SampleRate > 0)
             {
