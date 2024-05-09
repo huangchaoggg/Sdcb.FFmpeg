@@ -5,6 +5,9 @@
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <Version>1.0.0-preview2</Version>
+    <RepositoryUrl>https://github.com/huangchaoggg/Sdcb.FFmpeg.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <ItemGroup>
