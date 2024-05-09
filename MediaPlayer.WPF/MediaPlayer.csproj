@@ -8,6 +8,8 @@
     <Version>1.0.0-preview2</Version>
     <RepositoryUrl>https://github.com/huangchaoggg/Sdcb.FFmpeg.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <Title>MediaPlayer</Title>
+    <Description>基于ffmpeg创建的视频播放器，支持flv、mp3、mp4、3gp等常用视频格式，可在win7上运行</Description>
   </PropertyGroup>
 
   <ItemGroup>
